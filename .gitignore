@@ -49,3 +49,7 @@ logs/*
 .env
 
 *.ps1
+
+credentials.json
+*test*
+token.json

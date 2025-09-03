@@ -20,6 +20,12 @@ today = datetime.now()
 months = f"{today.month:02d}"
 days = f"{today.day:02d}"
 
+# Configuración Google Drive - Carpetas destino
+DRIVE_FOLDERS = {
+    'ARTICULOS_JSON': 'ARTICULOS JSON',
+    'CATALOGOS_SELK': 'CATÁLOGOS SELK'
+}
+
 # Rutas de salida (mantienen la estructura original)
 outputPathDataJSON = "G:\\Mi unidad\\ARTICULOS JSON\\"
 ouputFullData = ROOT_DIR + "\\output\\last_full_data.json"
