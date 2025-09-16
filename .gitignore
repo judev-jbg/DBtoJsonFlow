@@ -51,5 +51,6 @@ logs/*
 *.ps1
 
 credentials.json
+credentials-service.json
 *test*
 token.json

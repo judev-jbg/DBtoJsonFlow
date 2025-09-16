@@ -203,7 +203,7 @@ def upload_files_to_drive(accumulated_changes, full_database, version_info):
         drive_manager.authenticate()
         
         # Probar conexión
-        if not drive_manager.test_connection():
+        if not drive_manager.validate_connection():
             print("❌ Error conectando con Google Drive")
             return False
         

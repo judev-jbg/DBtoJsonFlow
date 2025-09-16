@@ -3,10 +3,10 @@ import pickle
 import json
 import tempfile
 import uuid
-from typing import Optional, Dict, Any
+from typing import Optional
 from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+from google.oauth2.service_account import Credentials
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
 import time
@@ -16,38 +16,45 @@ class DriveManager:
     
     SCOPES = ['https://www.googleapis.com/auth/drive']
     
-    def __init__(self, credentials_path: str = 'credentials.json', token_path: str = 'token.json'):
-        self.credentials_path = credentials_path
-        self.token_path = token_path
+    def __init__(self, service_account_path: str = 'credentials-service.json'):
+        self.service_account_path = service_account_path
         self.service = None
-        self._folder_cache = {}  # Cache para IDs de carpetas
+        self._folder_cache = {}
     
     def authenticate(self):
-        """Autentica y crea el servicio de Google Drive"""
-        creds = None
-        
-        # Cargar token existente
-        if os.path.exists(self.token_path):
-            with open(self.token_path, 'rb') as token:
-                creds = pickle.load(token)
-        
-        # Si no hay credenciales válidas, obtenerlas
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_path, self.SCOPES)
-                creds = flow.run_local_server(port=0)
+        """Autentica usando Service Account (sin intervención del usuario)"""
+        try:
+            if not os.path.exists(self.service_account_path):
+                raise FileNotFoundError(f"Archivo de Service Account no encontrado: {self.service_account_path}")
             
-            # Guardar credenciales para próximas ejecuciones
-            with open(self.token_path, 'wb') as token:
-                pickle.dump(creds, token)
-        
-        self.service = build('drive', 'v3', credentials=creds)
-        print("✅ Autenticación con Google Drive exitosa")
-        return self.service
+            # Cargar credenciales desde el archivo JSON
+            creds = Credentials.from_service_account_file(
+                self.service_account_path, scopes=self.SCOPES)
+            
+            # Crear servicio
+            self.service = build('drive', 'v3', credentials=creds)
+            
+            # Validar conexión
+            self.service.about().get(fields="user").execute()
+            print("✅ Autenticación con Service Account exitosa")
+            return self.service
+            
+        except Exception as e:
+            print(f"❌ Error autenticando con Service Account: {e}")
+            raise
     
+    def validate_connection(self) -> bool:
+        """Valida que la conexión sea válida"""
+        try:
+            if not self.service:
+                self.authenticate()
+            
+            self.service.about().get(fields="user,storageQuota").execute()
+            return True
+        except Exception as e:
+            print(f"❌ Conexión inválida: {e}")
+            return False   
+
     def get_folder_id(self, folder_path: str, create_if_not_exists: bool = True) -> Optional[str]:
         """
         Obtiene el ID de una carpeta por su ruta (ej: 'ARTICULOS JSON')
